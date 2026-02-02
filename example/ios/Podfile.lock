@@ -1,0 +1,73 @@
+PODS:
+  - Flutter (1.0.0)
+  - KalturaNetKit (1.7.0):
+    - KalturaNetKit/Core (= 1.7.0)
+  - KalturaNetKit/Core (1.7.0):
+    - kSwiftyJSON (= 5.0.8)
+  - kSwiftyJSON (5.0.8)
+  - ObjcExceptionBridging (7.1.5):
+    - ObjcExceptionBridging/ObjcExceptionBridging (= 7.1.5)
+  - ObjcExceptionBridging/ObjcExceptionBridging (7.1.5)
+  - PlayKitCustomized (3.31.1):
+    - PlayKitCustomized/Core (= 3.31.1)
+  - PlayKitCustomized/Core (3.31.1):
+    - KalturaNetKit (~> 1.7.0)
+    - kSwiftyJSON (= 5.0.8)
+    - PlayKitUtils (~> 0.7)
+    - XCGLogger (= 7.1.5)
+  - PlayKitUtils (0.7.0)
+  - PlayKitVRCustomized (1.3.3):
+    - PlayKitCustomized/Core
+  - SwiftyXMLParser (5.6.0)
+  - vr_player (0.0.1):
+    - Flutter
+    - PlayKitVRCustomized
+    - vr_player/PlayKitProvidersCustomized (= 0.0.1)
+  - vr_player/PlayKitProvidersCustomized (0.0.1):
+    - Flutter
+    - KalturaNetKit (~> 1.7.0)
+    - PlayKitCustomized
+    - PlayKitUtils (~> 0.7)
+    - PlayKitVRCustomized
+    - SwiftyXMLParser (= 5.6.0)
+  - XCGLogger (7.1.5):
+    - XCGLogger/Core (= 7.1.5)
+  - XCGLogger/Core (7.1.5):
+    - ObjcExceptionBridging
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - vr_player (from `.symlinks/plugins/vr_player/ios`)
+
+SPEC REPOS:
+  trunk:
+    - KalturaNetKit
+    - kSwiftyJSON
+    - ObjcExceptionBridging
+    - PlayKitCustomized
+    - PlayKitUtils
+    - PlayKitVRCustomized
+    - SwiftyXMLParser
+    - XCGLogger
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  vr_player:
+    :path: ".symlinks/plugins/vr_player/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  KalturaNetKit: a01d38b9d54ae38f5f20ffd6c15d0480097b154e
+  kSwiftyJSON: 9d87145a14a721c7b64ed68a77ca105fbf034d37
+  ObjcExceptionBridging: d3d37d62981bb7f252ecb31b62d7e23a96bbfb8a
+  PlayKitCustomized: 83c999e590b90c6f4984be211c2cc0ab731d760f
+  PlayKitUtils: 7b0e4a5d981fbe88437829c97610b565a2534d38
+  PlayKitVRCustomized: 70fa3e38b407e3a73359b85d26f3f5d07f94bd1c
+  SwiftyXMLParser: 9b98995235961881322015ebe38d1f3d7c953bd7
+  vr_player: 759ec221b68cc207766c7cf9e2d50c81df7c8ddf
+  XCGLogger: 399c5885210b4e2ad79d9f7a29b105d672ef724f
+
+PODFILE CHECKSUM: 57c8aed26fba39d3ec9424816221f294a07c58eb
+
+COCOAPODS: 1.16.2
