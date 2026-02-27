@@ -31,3 +31,6 @@ flutter:
         pluginClass: VrPlayer
       ios:
         pluginClass: VrPlayer
+      tizen:
+        pluginClass: VrPlayerPlugin
+        fileName: vr_player_plugin.h

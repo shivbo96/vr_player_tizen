@@ -36,7 +36,6 @@ class VrPlayer extends StatefulWidget {
 class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
   late VrPlayerController _videoPlayerController;
   late VrPlayerObserver _playerObserver;
-  bool _wasResumed = false;
 
   @override
   void initState() {
@@ -61,7 +60,6 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
-      _wasResumed = true;
       await _videoPlayerController.onResume();
     } else if (state == AppLifecycleState.paused) {
       await _videoPlayerController.onPause();
@@ -80,8 +78,6 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     const viewType = 'plugins.vr_player/player_view';
@@ -90,7 +86,7 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
       color: Colors.black,
       width: widget.width,
       height: widget.height,
-      child: Platform.isAndroid
+      child: (Platform.isAndroid || Platform.isLinux)
           ? PlatformViewLink(
               surfaceFactory: (context, controller) {
                 return AndroidViewSurface(
