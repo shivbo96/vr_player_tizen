@@ -55,6 +55,8 @@ void VrPlayer::InitializePlayer() {
 
   player_set_completed_cb(player_, OnCompleted, this);
   player_set_error_cb(player_, OnError, this);
+  player_set_play_position_changed_cb(player_, OnPlayPositionChanged, this);
+  player_set_play_position_changed_cb_interval(player_, 500);
 
   player_set_display_mode(player_, PLAYER_DISPLAY_MODE_DST_ROI);
   player_set_display_visible(player_, true);
@@ -119,6 +121,14 @@ void VrPlayer::SeekTo(int32_t position) {
   if (player_) {
     player_set_play_position(player_, position, true, nullptr, nullptr);
   }
+}
+
+bool VrPlayer::IsPlaying() {
+  if (!player_)
+    return false;
+  player_state_e state;
+  player_get_state(player_, &state);
+  return state == PLAYER_STATE_PLAYING;
 }
 
 int32_t VrPlayer::GetPosition() {
@@ -326,6 +336,12 @@ void VrPlayer::OnCompleted(void *data) {
 
 void VrPlayer::OnError(int error_code, void *data) {
   LOG_ERROR("Player error: %d", error_code);
+}
+
+void VrPlayer::OnPlayPositionChanged(int millisecond, void *data) {
+  auto *player = static_cast<VrPlayer *>(data);
+  player->PushEvent(
+      std::make_pair("position", flutter::EncodableValue(millisecond)));
 }
 
 void VrPlayer::OnVideoFrameDecoded(media_packet_h packet, void *data) {

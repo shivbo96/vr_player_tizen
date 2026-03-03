@@ -27,6 +27,7 @@ public:
   void Pause();
   void SetVolume(double volume);
   void SeekTo(int32_t position);
+  bool IsPlaying();
   int32_t GetPosition();
   void Dispose();
 
@@ -43,6 +44,7 @@ private:
   static void OnPrepared(void *data);
   static void OnCompleted(void *data);
   static void OnError(int error_code, void *data);
+  static void OnPlayPositionChanged(int millisecond, void *data);
   static void OnVideoFrameDecoded(media_packet_h packet, void *data);
   static void ReleaseMediaPacket(void *packet);
 

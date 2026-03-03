@@ -111,9 +111,14 @@ private:
           std::get_if<flutter::EncodableMap>(method_call.arguments());
       if (args) {
         auto vol_it = args->find(flutter::EncodableValue("volume"));
-        if (vol_it != args->end() &&
-            std::holds_alternative<double>(vol_it->second)) {
-          player->SetVolume(std::get<double>(vol_it->second));
+        if (vol_it != args->end()) {
+          double volume = 0.0;
+          if (std::holds_alternative<double>(vol_it->second)) {
+            volume = std::get<double>(vol_it->second);
+          } else if (std::holds_alternative<int32_t>(vol_it->second)) {
+            volume = static_cast<double>(std::get<int32_t>(vol_it->second));
+          }
+          player->SetVolume(volume);
         }
       }
       result->Success();
@@ -122,9 +127,16 @@ private:
           std::get_if<flutter::EncodableMap>(method_call.arguments());
       if (args) {
         auto pos_it = args->find(flutter::EncodableValue("position"));
-        if (pos_it != args->end() &&
-            std::holds_alternative<int32_t>(pos_it->second)) {
-          player->SeekTo(std::get<int32_t>(pos_it->second));
+        if (pos_it != args->end()) {
+          int32_t position = 0;
+          if (std::holds_alternative<int32_t>(pos_it->second)) {
+            position = std::get<int32_t>(pos_it->second);
+          } else if (std::holds_alternative<int64_t>(pos_it->second)) {
+            position = static_cast<int32_t>(std::get<int64_t>(pos_it->second));
+          } else if (std::holds_alternative<double>(pos_it->second)) {
+            position = static_cast<int32_t>(std::get<double>(pos_it->second));
+          }
+          player->SeekTo(position);
         }
       }
       result->Success();
@@ -133,7 +145,7 @@ private:
       players_.erase(texture_id);
       result->Success();
     } else if (method == "isPlaying") {
-      result->Success(flutter::EncodableValue(true)); // stubbed
+      result->Success(flutter::EncodableValue(player->IsPlaying()));
     } else {
       result->Success(); // stub out unsupported methods
     }
