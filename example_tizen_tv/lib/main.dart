@@ -77,6 +77,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
   String? _currentPosition;
   double _currentSliderValue = 0.1;
   double _seekPosition = 0;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -199,7 +200,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                             value: _seekPosition.clamp(
                                 0.0, _intDuration?.toDouble() ?? 0),
                             max: _intDuration?.toDouble() ?? 0,
+                            onChangeStart: (value) {
+                              _isDragging = true;
+                            },
                             onChangeEnd: (value) {
+                              _isDragging = false;
                               _viewPlayerController.seekTo(value.toInt());
                             },
                             onChanged: (value) {
@@ -213,17 +218,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                         key: const Key("duration_text"),
                         style: const TextStyle(color: Colors.white),
                       ),
-                      if (_isFullScreen || _isLandscapeOrientation)
-                        IconButton(
-                          icon: Icon(
-                            _isVolumeEnabled
-                                ? Icons.volume_up_rounded
-                                : Icons.volume_off_rounded,
-                            color: Colors.white,
-                          ),
-                          onPressed: () =>
-                              switchVolumeSliderDisplay(show: true),
+                      IconButton(
+                        icon: Icon(
+                          _isVolumeEnabled
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
+                          color: Colors.white,
                         ),
+                        onPressed: () {
+                          if (_isVolumeEnabled) {
+                            onChangeVolumeSlider(0);
+                          } else {
+                            onChangeVolumeSlider(_currentSliderValue == 0
+                                ? 0.5
+                                : _currentSliderValue);
+                          }
+                        },
+                      ),
                       IconButton(
                         icon: Icon(
                             _isFullScreen
@@ -318,14 +329,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     observer
       ..onStateChange = onReceiveState
       ..onDurationChange = onReceiveDuration
-      ..onPositionChange = onChangePosition
+      ..onPositionChange = onReceivePosition
       ..onFinishedChange = onReceiveEnded;
     if (!_isVideoLoaded) {
       Future.delayed(Duration.zero, () async {
         await _viewPlayerController.loadVideo(
-          videoUrl: 'https://cdn.deinerstertag.de/video/OKO_TECH-Industriemechaniker_in-KE-GR-V01/HLS/master.m3u8',
+          videoUrl:
+              'https://cdn.deinerstertag.de/video/OKO_TECH-Industriemechaniker_in-KE-GR-V01/HLS/master.m3u8',
           // videoUrl:
-              // 'https://cdn.bitmovin.com/content/assets/playhouse-vr/m3u8s/105560.m3u8',
+          // 'https://cdn.bitmovin.com/content/assets/playhouse-vr/m3u8s/105560.m3u8',
         );
         if (!mounted) return;
         setState(() {
@@ -359,6 +371,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     setState(() {
       _intDuration = millis;
       _duration = millisecondsToDateTime(millis);
+    });
+  }
+
+  void onReceivePosition(int millis) {
+    if (!mounted) return;
+    if (_isDragging) return; // Ignore observer updates while dragging
+    setState(() {
+      _currentPosition = millisecondsToDateTime(millis);
+      _seekPosition = millis.toDouble();
     });
   }
 

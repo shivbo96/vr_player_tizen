@@ -55,8 +55,6 @@ void VrPlayer::InitializePlayer() {
 
   player_set_completed_cb(player_, OnCompleted, this);
   player_set_error_cb(player_, OnError, this);
-  player_set_play_position_changed_cb(player_, OnPlayPositionChanged, this);
-  player_set_play_position_changed_cb_interval(player_, 500);
 
   player_set_display_mode(player_, PLAYER_DISPLAY_MODE_DST_ROI);
   player_set_display_visible(player_, true);
@@ -97,17 +95,32 @@ void VrPlayer::Play() {
       return;
     }
     player_start(player_);
+
+    if (position_timer_) {
+      ecore_timer_del(position_timer_);
+    }
+    position_timer_ = ecore_timer_add(0.5, OnPositionTimer, this);
+
+    // Re-send duration when playback starts to ensure UI is in sync.
+    int duration = 0;
+    if (player_get_duration(player_, &duration) == PLAYER_ERROR_NONE) {
+      PushEvent(std::make_pair("duration", flutter::EncodableValue(duration)));
+    }
+
     PushEvent(std::make_pair(
-        "state",
-        flutter::EncodableValue(1))); // VrState.ready or playing, based on your
-                                      // lib logic. 3=idle, etc.
+        "state", flutter::EncodableValue(1))); // VrState.ready/playing
   }
 }
 
 void VrPlayer::Pause() {
   if (player_) {
     player_pause(player_);
-    PushEvent(std::make_pair("state", flutter::EncodableValue(3))); // idle
+    if (position_timer_) {
+      ecore_timer_del(position_timer_);
+      position_timer_ = nullptr;
+    }
+    PushEvent(
+        std::make_pair("state", flutter::EncodableValue(3))); // idle/paused
   }
 }
 
@@ -140,6 +153,10 @@ int32_t VrPlayer::GetPosition() {
 }
 
 void VrPlayer::Dispose() {
+  if (position_timer_) {
+    ecore_timer_del(position_timer_);
+    position_timer_ = nullptr;
+  }
   if (player_) {
     player_stop(player_);
     player_unprepare(player_);
@@ -338,10 +355,13 @@ void VrPlayer::OnError(int error_code, void *data) {
   LOG_ERROR("Player error: %d", error_code);
 }
 
-void VrPlayer::OnPlayPositionChanged(int millisecond, void *data) {
+Eina_Bool VrPlayer::OnPositionTimer(void *data) {
   auto *player = static_cast<VrPlayer *>(data);
+  int position = 0;
+  player_get_play_position(player->player_, &position);
   player->PushEvent(
-      std::make_pair("position", flutter::EncodableValue(millisecond)));
+      std::make_pair("position", flutter::EncodableValue(position)));
+  return ECORE_CALLBACK_RENEW;
 }
 
 void VrPlayer::OnVideoFrameDecoded(media_packet_h packet, void *data) {

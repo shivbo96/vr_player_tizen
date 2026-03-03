@@ -2,6 +2,7 @@
 #define FLUTTER_PLUGIN_VR_PLAYER_H_
 
 #include <Ecore.h>
+#include <Eina.h>
 #include <flutter/encodable_value.h>
 #include <flutter/event_channel.h>
 #include <flutter/plugin_registrar.h>
@@ -44,7 +45,7 @@ private:
   static void OnPrepared(void *data);
   static void OnCompleted(void *data);
   static void OnError(int error_code, void *data);
-  static void OnPlayPositionChanged(int millisecond, void *data);
+  static Eina_Bool OnPositionTimer(void *data);
   static void OnVideoFrameDecoded(media_packet_h packet, void *data);
   static void ReleaseMediaPacket(void *packet);
 
@@ -87,6 +88,7 @@ private:
   std::mutex queue_mutex_;
   std::queue<std::pair<std::string, flutter::EncodableValue>>
       encodable_event_queue_;
+  Ecore_Timer *position_timer_ = nullptr;
 };
 
 } // namespace vr_player_tizen
