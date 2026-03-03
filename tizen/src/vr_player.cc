@@ -309,6 +309,7 @@ void VrPlayer::OnPrepared(void *data) {
     player->Play();
   }
 
+#if VR_PLAYER_HAS_360
   bool is_spherical = false;
   if (player_360_is_content_spherical(player->player_, &is_spherical) ==
           PLAYER_ERROR_NONE &&
@@ -316,6 +317,7 @@ void VrPlayer::OnPrepared(void *data) {
     LOG_INFO("Content is spherical, enabling 360 mode.");
     player->SetVRMode(true);
   }
+#endif
 }
 
 void VrPlayer::OnCompleted(void *data) {
@@ -339,6 +341,7 @@ Eina_Bool VrPlayer::OnPositionTimer(void *data) {
 void VrPlayer::OnRenderingCompleted() {}
 
 void VrPlayer::SetVRMode(bool enabled) {
+#if VR_PLAYER_HAS_360
   if (!player_)
     return;
   int ret = player_360_set_enabled(player_, enabled);
@@ -348,6 +351,9 @@ void VrPlayer::SetVRMode(bool enabled) {
   }
   is_360_enabled_ = enabled;
   LOG_INFO("360 mode %s", enabled ? "enabled" : "disabled");
+#else
+  LOG_ERROR("360 mode is not supported on this platform.");
+#endif
 }
 
 void VrPlayer::StartContinuousDrag(double dx, double dy) {
@@ -372,6 +378,7 @@ Eina_Bool VrPlayer::OnDragTimer(void *data) {
     return ECORE_CALLBACK_RENEW;
   }
 
+#if VR_PLAYER_HAS_360
   // Adjust sensitivity: these are pixel deltas from Flutter, map to degrees.
   // Assuming a drag of 'width' pixels should be ~180 degrees.
   float sensitivity = 0.05f;
@@ -392,6 +399,7 @@ Eina_Bool VrPlayer::OnDragTimer(void *data) {
 
   player_360_set_direction_of_view(player->player_, player->yaw_,
                                    player->pitch_);
+#endif
   return ECORE_CALLBACK_RENEW;
 }
 

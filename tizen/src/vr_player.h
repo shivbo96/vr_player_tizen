@@ -7,8 +7,17 @@
 #include <flutter/event_channel.h>
 #include <flutter/plugin_registrar.h>
 #include <player.h>
+
+#if __has_include(<player_360.h>)
 #include <player_360.h>
+#define VR_PLAYER_HAS_360 1
+#else
+#define VR_PLAYER_HAS_360 0
+#endif
+
+#if __has_include(<player_display.h>)
 #include <player_display.h>
+#endif
 
 #include <functional>
 #include <memory>
