@@ -6,45 +6,18 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace {
-
-class VrPlayerStreamHandler
-    : public flutter::StreamHandler<flutter::EncodableValue> {
-public:
-  VrPlayerStreamHandler() {}
-  virtual ~VrPlayerStreamHandler() {}
-
-protected:
-  std::unique_ptr<flutter::StreamHandlerError<flutter::EncodableValue>>
-  OnListenInternal(const flutter::EncodableValue *arguments,
-                   std::unique_ptr<flutter::EventSink<flutter::EncodableValue>>
-                       events) override {
-    events_ = std::move(events);
-    return nullptr;
-  }
-
-  std::unique_ptr<flutter::StreamHandlerError<flutter::EncodableValue>>
-  OnCancelInternal(const flutter::EncodableValue *arguments) override {
-    events_.reset();
-    return nullptr;
-  }
-
-private:
-  std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> events_;
-};
 
 class VrPlayerPlugin : public flutter::Plugin {
 public:
   static void RegisterWithRegistrar(flutter::PluginRegistrar *registrar) {
-    // Main plugin method channel
     auto channel =
         std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
             registrar->messenger(), "vr_player",
             &flutter::StandardMethodCodec::GetInstance());
 
-    auto plugin = std::make_unique<VrPlayerPlugin>(registrar->messenger());
+    auto plugin = std::make_unique<VrPlayerPlugin>();
 
     channel->SetMethodCallHandler(
         [plugin_ptr = plugin.get()](const auto &call, auto result) {
@@ -54,8 +27,7 @@ public:
     registrar->AddPlugin(std::move(plugin));
   }
 
-  explicit VrPlayerPlugin(flutter::BinaryMessenger *messenger)
-      : messenger_(messenger) {}
+  VrPlayerPlugin() {}
   virtual ~VrPlayerPlugin() {}
 
 private:
@@ -81,8 +53,6 @@ private:
       result->NotImplemented();
     }
   }
-
-  flutter::BinaryMessenger *messenger_;
 };
 
 } // namespace
