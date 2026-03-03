@@ -52,7 +52,7 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
 
   Future<void> _initTizenPlayer() async {
     const channel = MethodChannel('vr_player');
-    final int? textureId = await channel.invokeMethod<int>('init');
+    final textureId = await channel.invokeMethod<int>('init');
     if (textureId != null) {
       if (mounted) {
         setState(() {
