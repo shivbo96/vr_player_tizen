@@ -44,9 +44,11 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (!kIsWeb && Platform.operatingSystem == 'tizen') {
-      _isTizen = true;
-      _initTizenPlayer();
+    if (!kIsWeb) {
+      if (Platform.operatingSystem == 'tizen' || Platform.isLinux) {
+        _isTizen = true;
+        _initTizenPlayer();
+      }
     }
   }
 
@@ -119,7 +121,7 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
       color: Colors.black,
       width: widget.width,
       height: widget.height,
-      child: (Platform.isAndroid || Platform.isLinux)
+      child: Platform.isAndroid
           ? PlatformViewLink(
               surfaceFactory: (context, controller) {
                 return AndroidViewSurface(

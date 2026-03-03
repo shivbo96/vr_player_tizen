@@ -36,7 +36,7 @@ private:
   void InitializePlayer();
   void SetUpEventChannel(flutter::BinaryMessenger *messenger);
   void SendPendingEvents();
-  void PushEvent(const flutter::EncodableValue &encodable_value);
+  void PushEvent(const std::pair<std::string, flutter::EncodableValue> &event);
 
   FlutterDesktopGpuSurfaceDescriptor *ObtainGpuSurface(size_t width,
                                                        size_t height);
@@ -53,6 +53,8 @@ private:
   media_packet_h previous_media_packet_ = nullptr;
 
   bool is_rendering_ = false;
+  bool is_prepared_ = false;
+  bool play_on_prepared_ = false;
 
   std::unique_ptr<flutter::EventChannel<flutter::EncodableValue>>
       state_channel_;

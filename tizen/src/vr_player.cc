@@ -4,6 +4,8 @@
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/standard_method_codec.h>
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #define LOG_ERROR(fmt, ...)                                                    \
   dlog_print(DLOG_ERROR, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
 #define LOG_INFO(fmt, ...)                                                     \
@@ -51,11 +53,11 @@ void VrPlayer::InitializePlayer() {
     return;
   }
 
-  player_set_prepared_cb(player_, OnPrepared, this);
   player_set_completed_cb(player_, OnCompleted, this);
   player_set_error_cb(player_, OnError, this);
 
   player_set_display_mode(player_, PLAYER_DISPLAY_MODE_DST_ROI);
+  player_set_display_visible(player_, true);
 }
 
 void VrPlayer::LoadVideo(const std::string &uri) {
@@ -66,12 +68,21 @@ void VrPlayer::LoadVideo(const std::string &uri) {
     return;
   }
 
-  ret = player_set_video_stream_changed_cb(player_, OnVideoFrameDecoded, this);
+  ret = player_set_media_packet_video_frame_decoded_cb(
+      player_, OnVideoFrameDecoded, this);
+
   if (ret != PLAYER_ERROR_NONE) {
-    LOG_ERROR("player_set_video_stream_changed_cb failed: %d", ret);
+    LOG_ERROR("player_set_media_packet_video_frame_decoded_cb failed: %d", ret);
   }
 
-  ret = player_prepare_async(player_);
+  ret = player_prepare_async(
+      player_,
+      [](void *user_data) {
+        auto *player = static_cast<VrPlayer *>(user_data);
+        player->OnPrepared(player);
+      },
+      this);
+
   if (ret != PLAYER_ERROR_NONE) {
     LOG_ERROR("player_prepare_async failed: %d", ret);
   }
@@ -79,17 +90,22 @@ void VrPlayer::LoadVideo(const std::string &uri) {
 
 void VrPlayer::Play() {
   if (player_) {
+    if (!is_prepared_) {
+      play_on_prepared_ = true;
+      return;
+    }
     player_start(player_);
-    PushEvent({"state",
-               flutter::EncodableValue(1)}); // VrState.ready or playing, based
-                                             // on your lib logic. 3=idle, etc.
+    PushEvent(std::make_pair(
+        "state",
+        flutter::EncodableValue(1))); // VrState.ready or playing, based on your
+                                      // lib logic. 3=idle, etc.
   }
 }
 
 void VrPlayer::Pause() {
   if (player_) {
     player_pause(player_);
-    PushEvent({"state", flutter::EncodableValue(3)}); // idle
+    PushEvent(std::make_pair("state", flutter::EncodableValue(3))); // idle
   }
 }
 
@@ -287,16 +303,25 @@ FlutterDesktopGpuSurfaceDescriptor *VrPlayer::ObtainGpuSurface(size_t width,
 
 void VrPlayer::OnPrepared(void *data) {
   auto *player = static_cast<VrPlayer *>(data);
-  player->PushEvent({"state", flutter::EncodableValue(1)}); // VrState.ready
+  player->is_prepared_ = true;
+
+  player->PushEvent(
+      std::make_pair("state", flutter::EncodableValue(1))); // VrState.ready
 
   int duration = 0;
   player_get_duration(player->player_, &duration);
-  player->PushEvent({"duration", flutter::EncodableValue(duration)});
+  player->PushEvent(
+      std::make_pair("duration", flutter::EncodableValue(duration)));
+
+  if (player->play_on_prepared_) {
+    player->play_on_prepared_ = false;
+    player->Play();
+  }
 }
 
 void VrPlayer::OnCompleted(void *data) {
   auto *player = static_cast<VrPlayer *>(data);
-  player->PushEvent({"ended", flutter::EncodableValue(true)});
+  player->PushEvent(std::make_pair("ended", flutter::EncodableValue(true)));
 }
 
 void VrPlayer::OnError(int error_code, void *data) {
@@ -307,11 +332,14 @@ void VrPlayer::OnVideoFrameDecoded(media_packet_h packet, void *data) {
   auto *player = static_cast<VrPlayer *>(data);
 
   std::lock_guard<std::mutex> lock(player->mutex_);
+
   if (player->previous_media_packet_) {
     media_packet_destroy(player->previous_media_packet_);
+    player->previous_media_packet_ = nullptr;
   }
   player->previous_media_packet_ = player->current_media_packet_;
   player->current_media_packet_ = packet;
+
   player->RequestRendering();
 }
 
@@ -324,17 +352,20 @@ void VrPlayer::ReleaseMediaPacket(void *data) {
 }
 
 void VrPlayer::RequestRendering() {
-  if (!is_rendering_) {
+  if (is_rendering_) {
+    return;
+  }
+  if (texture_registrar_->MarkTextureFrameAvailable(texture_id_)) {
     is_rendering_ = true;
-    texture_registrar_->MarkTextureFrameAvailable(texture_id_);
   }
 }
 
 void VrPlayer::OnRenderingCompleted() {
-  if (current_media_packet_ && !is_rendering_) {
-    is_rendering_ = true;
-    texture_registrar_->MarkTextureFrameAvailable(texture_id_);
+  if (previous_media_packet_) {
+    media_packet_destroy(previous_media_packet_);
+    previous_media_packet_ = nullptr;
   }
+  RequestRendering();
 }
 
 } // namespace vr_player_tizen
