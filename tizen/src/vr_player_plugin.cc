@@ -9,18 +9,26 @@
 #include <string>
 
 #include "vr_player.h"
+#include "vr_player_view.h"
 
 namespace {
 
 class VrPlayerPlugin : public flutter::Plugin {
 public:
   static void RegisterWithRegistrar(flutter::PluginRegistrar *registrar) {
+    auto plugin = std::make_unique<VrPlayerPlugin>(registrar);
+
+    auto factory = std::make_unique<vr_player_tizen::VrPlayerViewFactory>(
+        registrar, [plugin_ptr = plugin.get()](int64_t view_id) {
+          return plugin_ptr->GetPlayer(view_id);
+        });
+    registrar->register_view_factory("plugins.vr_player/player_view",
+                                     std::move(factory));
+
     auto channel =
         std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
             registrar->messenger(), "vr_player",
             &flutter::StandardMethodCodec::GetInstance());
-
-    auto plugin = std::make_unique<VrPlayerPlugin>(registrar);
 
     channel->SetMethodCallHandler(
         [plugin_ptr = plugin.get()](const auto &call, auto result) {
@@ -40,26 +48,10 @@ private:
     const std::string &method = method_call.method_name();
 
     if (method == "init") {
-      auto player = std::make_unique<vr_player_tizen::VrPlayer>(
-          registrar_, registrar_->texture_registrar());
-      int64_t texture_id = player->GetTextureId();
-      players_[texture_id] = std::move(player);
-
-      // We also need to set up a specific channel for this player
-      std::string id_str = std::to_string(texture_id);
-      auto channel =
-          std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-              registrar_->messenger(), "vr_player_" + id_str,
-              &flutter::StandardMethodCodec::GetInstance());
-
-      channel->SetMethodCallHandler(
-          [this, texture_id](const auto &call, auto result) {
-            HandlePlayerMethodCall(texture_id, call, std::move(result));
-          });
-
-      player_channels_[texture_id] = std::move(channel);
-
-      result->Success(flutter::EncodableValue(texture_id));
+      // PlatformViews handle their own ID generation.
+      // We return 0 as a placeholder, but the real initialization
+      // happens when the TizenView is created.
+      result->Success(flutter::EncodableValue(0));
       return;
     }
 
@@ -146,9 +138,68 @@ private:
       result->Success();
     } else if (method == "isPlaying") {
       result->Success(flutter::EncodableValue(player->IsPlaying()));
+    } else if (method == "toggleVRMode") {
+      player->SetVRMode(!player->Is360Enabled());
+      result->Success();
+    } else if (method == "setVRMode") {
+      const auto *args =
+          std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args) {
+        auto enabled_it = args->find(flutter::EncodableValue("enabled"));
+        if (enabled_it != args->end() &&
+            std::holds_alternative<bool>(enabled_it->second)) {
+          player->SetVRMode(std::get<bool>(enabled_it->second));
+        }
+      }
+      result->Success();
+    } else if (method == "startContinuousDrag") {
+      const auto *args =
+          std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args) {
+        double dx = 0, dy = 0;
+        auto dx_it = args->find(flutter::EncodableValue("dx"));
+        auto dy_it = args->find(flutter::EncodableValue("dy"));
+        if (dx_it != args->end() &&
+            std::holds_alternative<double>(dx_it->second)) {
+          dx = std::get<double>(dx_it->second);
+        }
+        if (dy_it != args->end() &&
+            std::holds_alternative<double>(dy_it->second)) {
+          dy = std::get<double>(dy_it->second);
+        }
+        player->StartContinuousDrag(dx, dy);
+      }
+      result->Success();
+    } else if (method == "stopContinuousDrag") {
+      player->StopContinuousDrag();
+      result->Success();
     } else {
       result->Success(); // stub out unsupported methods
     }
+  }
+
+  void EnsurePlayer(int64_t id) {
+    if (players_.find(id) == players_.end()) {
+      auto player = std::make_unique<vr_player_tizen::VrPlayer>(registrar_);
+      players_[id] = std::move(player);
+
+      std::string id_str = std::to_string(id);
+      auto channel =
+          std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+              registrar_->messenger(), "vr_player_" + id_str,
+              &flutter::StandardMethodCodec::GetInstance());
+
+      channel->SetMethodCallHandler([this, id](const auto &call, auto result) {
+        HandlePlayerMethodCall(id, call, std::move(result));
+      });
+
+      player_channels_[id] = std::move(channel);
+    }
+  }
+
+  vr_player_tizen::VrPlayer *GetPlayer(int64_t id) {
+    EnsurePlayer(id);
+    return players_[id].get();
   }
 
   flutter::PluginRegistrar *registrar_;

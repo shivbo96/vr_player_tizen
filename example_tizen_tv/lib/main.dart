@@ -343,6 +343,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
         setState(() {
           _isVideoLoaded = true;
         });
+        await _viewPlayerController.setVRMode(true);
         playAndPause();
       });
     }

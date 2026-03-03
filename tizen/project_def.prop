@@ -3,7 +3,7 @@
 
 APPNAME = vr_player_tizen_plugin
 type = staticLib
-profile = common-5.5
+profile = tv-6.0
 
 # Source files
 USER_SRCS += src/*.cc

@@ -3,6 +3,9 @@
 #include <dlog.h>
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/standard_method_codec.h>
+#include <memory>
+#include <string>
+#include <vector>
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -13,20 +16,7 @@
 
 namespace vr_player_tizen {
 
-VrPlayer::VrPlayer(flutter::PluginRegistrar *plugin_registrar,
-                   flutter::TextureRegistrar *texture_registrar)
-    : texture_registrar_(texture_registrar) {
-  gpu_surface_ = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
-
-  texture_variant_ =
-      std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-          kFlutterDesktopGpuSurfaceTypeNone,
-          [this](size_t width,
-                 size_t height) -> const FlutterDesktopGpuSurfaceDescriptor * {
-            return this->ObtainGpuSurface(width, height);
-          }));
-  texture_id_ = texture_registrar_->RegisterTexture(texture_variant_.get());
-
+VrPlayer::VrPlayer(flutter::PluginRegistrar *plugin_registrar) {
   sink_event_pipe_ = ecore_pipe_add(
       [](void *data, void *buffer, unsigned int nbyte) {
         auto *player = static_cast<VrPlayer *>(data);
@@ -66,13 +56,6 @@ void VrPlayer::LoadVideo(const std::string &uri) {
   if (ret != PLAYER_ERROR_NONE) {
     LOG_ERROR("player_set_uri failed: %d", ret);
     return;
-  }
-
-  ret = player_set_media_packet_video_frame_decoded_cb(
-      player_, OnVideoFrameDecoded, this);
-
-  if (ret != PLAYER_ERROR_NONE) {
-    LOG_ERROR("player_set_media_packet_video_frame_decoded_cb failed: %d", ret);
   }
 
   ret = player_prepare_async(
@@ -140,8 +123,10 @@ bool VrPlayer::IsPlaying() {
   if (!player_)
     return false;
   player_state_e state;
-  player_get_state(player_, &state);
-  return state == PLAYER_STATE_PLAYING;
+  if (player_get_state(player_, &state) == PLAYER_ERROR_NONE) {
+    return state == PLAYER_STATE_PLAYING;
+  }
+  return false;
 }
 
 int32_t VrPlayer::GetPosition() {
@@ -163,15 +148,14 @@ void VrPlayer::Dispose() {
     player_destroy(player_);
     player_ = nullptr;
   }
-  if (texture_id_ != -1) {
-    texture_registrar_->UnregisterTexture(texture_id_);
-    texture_id_ = -1;
+  if (drag_timer_) {
+    ecore_timer_del(drag_timer_);
+    drag_timer_ = nullptr;
   }
 }
 
 void VrPlayer::SetUpEventChannel(flutter::BinaryMessenger *messenger) {
-  std::string state_channel_name =
-      "vr_player_events_" + std::to_string(texture_id_) + "_state";
+  std::string state_channel_name = "vr_player_events_state";
   state_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, state_channel_name,
@@ -194,8 +178,7 @@ void VrPlayer::SetUpEventChannel(flutter::BinaryMessenger *messenger) {
       });
   state_channel_->SetStreamHandler(std::move(state_handler));
 
-  std::string position_channel_name =
-      "vr_player_events_" + std::to_string(texture_id_) + "_position";
+  std::string position_channel_name = "vr_player_events_position";
   position_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, position_channel_name,
@@ -218,8 +201,7 @@ void VrPlayer::SetUpEventChannel(flutter::BinaryMessenger *messenger) {
       });
   position_channel_->SetStreamHandler(std::move(position_handler));
 
-  std::string duration_channel_name =
-      "vr_player_events_" + std::to_string(texture_id_) + "_duration";
+  std::string duration_channel_name = "vr_player_events_duration";
   duration_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, duration_channel_name,
@@ -242,8 +224,7 @@ void VrPlayer::SetUpEventChannel(flutter::BinaryMessenger *messenger) {
       });
   duration_channel_->SetStreamHandler(std::move(duration_handler));
 
-  std::string ended_channel_name =
-      "vr_player_events_" + std::to_string(texture_id_) + "_ended";
+  std::string ended_channel_name = "vr_player_events_ended";
   ended_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, ended_channel_name,
@@ -301,31 +282,14 @@ void VrPlayer::PushEvent(
   }
 }
 
-FlutterDesktopGpuSurfaceDescriptor *VrPlayer::ObtainGpuSurface(size_t width,
-                                                               size_t height) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!current_media_packet_) {
-    is_rendering_ = false;
-    OnRenderingCompleted();
-    return nullptr;
+void VrPlayer::SetDisplay(void *window_handle) {
+  if (!player_)
+    return;
+  int ret =
+      player_set_display(player_, PLAYER_DISPLAY_TYPE_OVERLAY, window_handle);
+  if (ret != PLAYER_ERROR_NONE) {
+    LOG_ERROR("player_set_display failed: %d", ret);
   }
-
-  tbm_surface_h surface;
-  int ret = media_packet_get_tbm_surface(current_media_packet_, &surface);
-  if (ret != MEDIA_PACKET_ERROR_NONE || !surface) {
-    LOG_ERROR("Failed to get a tbm surface, error: %d", ret);
-    is_rendering_ = false;
-    media_packet_destroy(current_media_packet_);
-    current_media_packet_ = nullptr;
-    OnRenderingCompleted();
-    return nullptr;
-  }
-  gpu_surface_->handle = surface;
-  gpu_surface_->width = width;
-  gpu_surface_->height = height;
-  gpu_surface_->release_context = this;
-  gpu_surface_->release_callback = ReleaseMediaPacket;
-  return gpu_surface_.get();
 }
 
 void VrPlayer::OnPrepared(void *data) {
@@ -343,6 +307,14 @@ void VrPlayer::OnPrepared(void *data) {
   if (player->play_on_prepared_) {
     player->play_on_prepared_ = false;
     player->Play();
+  }
+
+  bool is_spherical = false;
+  if (player_360_is_content_spherical(player->player_, &is_spherical) ==
+          PLAYER_ERROR_NONE &&
+      is_spherical) {
+    LOG_INFO("Content is spherical, enabling 360 mode.");
+    player->SetVRMode(true);
   }
 }
 
@@ -364,44 +336,63 @@ Eina_Bool VrPlayer::OnPositionTimer(void *data) {
   return ECORE_CALLBACK_RENEW;
 }
 
-void VrPlayer::OnVideoFrameDecoded(media_packet_h packet, void *data) {
-  auto *player = static_cast<VrPlayer *>(data);
+void VrPlayer::OnRenderingCompleted() {}
 
-  std::lock_guard<std::mutex> lock(player->mutex_);
-
-  if (player->previous_media_packet_) {
-    media_packet_destroy(player->previous_media_packet_);
-    player->previous_media_packet_ = nullptr;
-  }
-  player->previous_media_packet_ = player->current_media_packet_;
-  player->current_media_packet_ = packet;
-
-  player->RequestRendering();
-}
-
-void VrPlayer::ReleaseMediaPacket(void *data) {
-  auto *player = static_cast<VrPlayer *>(data);
-
-  std::lock_guard<std::mutex> lock(player->mutex_);
-  player->is_rendering_ = false;
-  player->OnRenderingCompleted();
-}
-
-void VrPlayer::RequestRendering() {
-  if (is_rendering_) {
+void VrPlayer::SetVRMode(bool enabled) {
+  if (!player_)
+    return;
+  int ret = player_360_set_enabled(player_, enabled);
+  if (ret != PLAYER_ERROR_NONE) {
+    LOG_ERROR("player_360_set_enabled failed: %d", ret);
     return;
   }
-  if (texture_registrar_->MarkTextureFrameAvailable(texture_id_)) {
-    is_rendering_ = true;
+  is_360_enabled_ = enabled;
+  LOG_INFO("360 mode %s", enabled ? "enabled" : "disabled");
+}
+
+void VrPlayer::StartContinuousDrag(double dx, double dy) {
+  drag_dx_ = static_cast<float>(dx);
+  drag_dy_ = static_cast<float>(dy);
+
+  if (!drag_timer_) {
+    drag_timer_ = ecore_timer_add(0.016, OnDragTimer, this); // ~60fps
   }
 }
 
-void VrPlayer::OnRenderingCompleted() {
-  if (previous_media_packet_) {
-    media_packet_destroy(previous_media_packet_);
-    previous_media_packet_ = nullptr;
+void VrPlayer::StopContinuousDrag() {
+  if (drag_timer_) {
+    ecore_timer_del(drag_timer_);
+    drag_timer_ = nullptr;
   }
-  RequestRendering();
+}
+
+Eina_Bool VrPlayer::OnDragTimer(void *data) {
+  auto *player = static_cast<VrPlayer *>(data);
+  if (!player->player_ || !player->is_360_enabled_) {
+    return ECORE_CALLBACK_RENEW;
+  }
+
+  // Adjust sensitivity: these are pixel deltas from Flutter, map to degrees.
+  // Assuming a drag of 'width' pixels should be ~180 degrees.
+  float sensitivity = 0.05f;
+  player->yaw_ += player->drag_dx_ * sensitivity;
+  player->pitch_ += player->drag_dy_ * sensitivity;
+
+  // Clamp pitch to avoid flipping (-90 to 90)
+  if (player->pitch_ > 90.0f)
+    player->pitch_ = 90.0f;
+  if (player->pitch_ < -90.0f)
+    player->pitch_ = -90.0f;
+
+  // Wrap yaw (0 to 360)
+  while (player->yaw_ > 360.0f)
+    player->yaw_ -= 360.0f;
+  while (player->yaw_ < 0.0f)
+    player->yaw_ += 360.0f;
+
+  player_360_set_direction_of_view(player->player_, player->yaw_,
+                                   player->pitch_);
+  return ECORE_CALLBACK_RENEW;
 }
 
 } // namespace vr_player_tizen

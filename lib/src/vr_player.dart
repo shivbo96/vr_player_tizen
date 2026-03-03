@@ -47,22 +47,6 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
     if (!kIsWeb) {
       if (Platform.operatingSystem == 'tizen' || Platform.isLinux) {
         _isTizen = true;
-        _initTizenPlayer();
-      }
-    }
-  }
-
-  Future<void> _initTizenPlayer() async {
-    const channel = MethodChannel('vr_player');
-    final textureId = await channel.invokeMethod<int>('init');
-    if (textureId != null) {
-      if (mounted) {
-        setState(() {
-          _textureId = textureId;
-        });
-        onPlatformViewCreated(textureId);
-        // Emulate an early readiness signal for tizen specifically.
-        _playerObserver.onStateChange?.call(VrState.ready);
       }
     }
   }
@@ -111,9 +95,17 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
         color: Colors.black,
         width: widget.width,
         height: widget.height,
-        child: _textureId != null
-            ? Texture(textureId: _textureId!)
-            : const SizedBox.shrink(),
+        child: AndroidView(
+          viewType: viewType,
+          onPlatformViewCreated: onPlatformViewCreated,
+          creationParams: <String, dynamic>{
+            'x': widget.x,
+            'y': widget.y,
+            'width': widget.width,
+            'height': widget.height,
+          },
+          creationParamsCodec: const StandardMessageCodec(),
+        ),
       );
     }
 
