@@ -45,7 +45,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void buttonOnPressed() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoPlayerPage()));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (context) => const VideoPlayerPage()));
   }
 }
 
@@ -56,7 +57,8 @@ class VideoPlayerPage extends StatefulWidget {
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderStateMixin {
+class _VideoPlayerPageState extends State<VideoPlayerPage>
+    with TickerProviderStateMixin {
   late VrPlayerController _viewPlayerController;
   late AnimationController _animationController;
   late Animation<double> _animation;
@@ -78,7 +80,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   @override
   void initState() {
-    _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 1));
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
     _toggleShowingBar();
     super.initState();
@@ -106,7 +109,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    _isLandscapeOrientation = MediaQuery.of(context).orientation == Orientation.landscape;
+    _isLandscapeOrientation =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -122,16 +126,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           children: <Widget>[
             Shortcuts(
               shortcuts: <LogicalKeySet, Intent>{
-                LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
-                LogicalKeySet(LogicalKeyboardKey.mediaPlayPause): const TogglePlayPauseIntent(),
-                LogicalKeySet(LogicalKeyboardKey.space): const TogglePlayPauseIntent(),
-                LogicalKeySet(LogicalKeyboardKey.enter): const ToggleBarIntent(),
+                LogicalKeySet(LogicalKeyboardKey.select):
+                    const ActivateIntent(),
+                LogicalKeySet(LogicalKeyboardKey.mediaPlayPause):
+                    const TogglePlayPauseIntent(),
+                LogicalKeySet(LogicalKeyboardKey.space):
+                    const TogglePlayPauseIntent(),
+                LogicalKeySet(LogicalKeyboardKey.enter):
+                    const ToggleBarIntent(),
               },
               child: Actions(
                 actions: <Type, Action<Intent>>{
-                  TogglePlayPauseIntent: CallbackAction<TogglePlayPauseIntent>(onInvoke: (_) => playAndPause()),
-                  ToggleBarIntent: CallbackAction<ToggleBarIntent>(onInvoke: (_) => _toggleShowingBar()),
-                  ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => _toggleShowingBar()),
+                  TogglePlayPauseIntent: CallbackAction<TogglePlayPauseIntent>(
+                      onInvoke: (_) => playAndPause()),
+                  ToggleBarIntent: CallbackAction<ToggleBarIntent>(
+                      onInvoke: (_) => _toggleShowingBar()),
+                  ActivateIntent: CallbackAction<ActivateIntent>(
+                      onInvoke: (_) => _toggleShowingBar()),
                 },
                 child: Focus(
                   autofocus: true,
@@ -163,13 +174,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                           _isVideoFinished
                               ? Icons.replay
                               : _isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
                           color: Colors.white,
                         ),
                         onPressed: playAndPause,
                       ),
-                      Text(_currentPosition?.toString() ?? '00:00', style: const TextStyle(color: Colors.white)),
+                      Text(_currentPosition?.toString() ?? '00:00',
+                          style: const TextStyle(color: Colors.white)),
                       Expanded(
                         child: SliderTheme(
                           data: SliderTheme.of(context).copyWith(
@@ -177,12 +189,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                             inactiveTrackColor: Colors.grey,
                             trackHeight: 5,
                             thumbColor: Colors.white,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 8),
                             overlayColor: Colors.purple.withAlpha(32),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                            overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 14),
                           ),
                           child: Slider(
-                            value: _seekPosition.clamp(0.0, _intDuration?.toDouble() ?? 0),
+                            value: _seekPosition.clamp(
+                                0.0, _intDuration?.toDouble() ?? 0),
                             max: _intDuration?.toDouble() ?? 0,
                             onChangeEnd: (value) {
                               _viewPlayerController.seekTo(value.toInt());
@@ -201,18 +216,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       if (_isFullScreen || _isLandscapeOrientation)
                         IconButton(
                           icon: Icon(
-                            _isVolumeEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                            _isVolumeEnabled
+                                ? Icons.volume_up_rounded
+                                : Icons.volume_off_rounded,
                             color: Colors.white,
                           ),
-                          onPressed: () => switchVolumeSliderDisplay(show: true),
+                          onPressed: () =>
+                              switchVolumeSliderDisplay(show: true),
                         ),
                       IconButton(
-                        icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white),
+                        icon: Icon(
+                            _isFullScreen
+                                ? Icons.fullscreen_exit
+                                : Icons.fullscreen,
+                            color: Colors.white),
                         onPressed: fullScreenPressed,
                       ),
                       if (_isFullScreen)
                         IconButton(
-                          icon: Image.asset('assets/icons/cardboard.png', color: Colors.white),
+                          icon: Image.asset('assets/icons/cardboard.png',
+                              color: Colors.white),
                           onPressed: cardBoardPressed,
                         )
                       else
@@ -229,7 +252,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
               child: _isVolumeSliderShown
                   ? RotatedBox(
                       quarterTurns: 3,
-                      child: Slider(value: _currentSliderValue, divisions: 10, onChanged: onChangeVolumeSlider),
+                      child: Slider(
+                          value: _currentSliderValue,
+                          divisions: 10,
+                          onChanged: onChangeVolumeSlider),
                     )
                   : const SizedBox(),
             ),
@@ -253,8 +279,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     });
 
     if (_isFullScreen) {
-      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+      await SystemChrome.setPreferredOrientations(
+          [DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+          overlays: []);
     } else {
       await SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeRight,
@@ -262,7 +290,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         DeviceOrientation.portraitUp,
         DeviceOrientation.portraitDown,
       ]);
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+          overlays: SystemUiOverlay.values);
     }
   }
 
@@ -283,7 +312,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     });
   }
 
-  void onViewPlayerCreated(VrPlayerController controller, VrPlayerObserver observer) async {
+  void onViewPlayerCreated(
+      VrPlayerController controller, VrPlayerObserver observer) async {
     _viewPlayerController = controller;
     observer
       ..onStateChange = onReceiveState
@@ -294,7 +324,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       Future.delayed(Duration.zero, () async {
         await _viewPlayerController.loadVideo(
           // videoUrl: 'https://cdn.deinerstertag.de/video/OKO_TECH-Industriemechaniker_in-KE-GR-V01/HLS/master.m3u8',
-          videoUrl: 'https://cdn.bitmovin.com/content/assets/playhouse-vr/m3u8s/105560.m3u8',
+          videoUrl:
+              'https://cdn.bitmovin.com/content/assets/playhouse-vr/m3u8s/105560.m3u8',
         );
         if (!mounted) return;
         setState(() {
@@ -361,7 +392,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     });
   }
 
-  String millisecondsToDateTime(int milliseconds) => setDurationText(Duration(milliseconds: milliseconds));
+  String millisecondsToDateTime(int milliseconds) =>
+      setDurationText(Duration(milliseconds: milliseconds));
 
   String setDurationText(Duration duration) {
     String twoDigits(int n) {

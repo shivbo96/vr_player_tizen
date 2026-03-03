@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:vr_player/src/vr_player_controller.dart';
 import 'package:vr_player/src/vr_player_created_callback.dart';
 import 'package:vr_player/src/vr_player_observer.dart';
+import 'package:vr_player/src/vr_state.dart';
 
 class VrPlayer extends StatefulWidget {
   final VrPlayerCreatedCallback onCreated;
@@ -36,11 +37,32 @@ class VrPlayer extends StatefulWidget {
 class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
   late VrPlayerController _videoPlayerController;
   late VrPlayerObserver _playerObserver;
+  int? _textureId;
+  bool _isTizen = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (!kIsWeb && Platform.operatingSystem == 'tizen') {
+      _isTizen = true;
+      _initTizenPlayer();
+    }
+  }
+
+  Future<void> _initTizenPlayer() async {
+    const channel = MethodChannel('vr_player');
+    final int? textureId = await channel.invokeMethod<int>('init');
+    if (textureId != null) {
+      if (mounted) {
+        setState(() {
+          _textureId = textureId;
+        });
+        onPlatformViewCreated(textureId);
+        // Emulate an early readiness signal for tizen specifically.
+        _playerObserver.onStateChange?.call(VrState.ready);
+      }
+    }
   }
 
   @override
@@ -81,6 +103,17 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     const viewType = 'plugins.vr_player/player_view';
+
+    if (_isTizen) {
+      return Container(
+        color: Colors.black,
+        width: widget.width,
+        height: widget.height,
+        child: _textureId != null
+            ? Texture(textureId: _textureId!)
+            : const SizedBox.shrink(),
+      );
+    }
 
     return Container(
       color: Colors.black,

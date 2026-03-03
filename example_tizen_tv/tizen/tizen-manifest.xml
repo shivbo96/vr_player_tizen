@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <manifest xmlns="http://tizen.org/ns/packages" api-version="6.5" package="com.example.example_tizen_tv" version="1.0.0">
     <profile name="tv"/>
-    <ui-application appid="com.example.example_tizen_tv" exec="example_tizen_tv" multiple="false" nodisplay="false" taskmanage="true" type="dotnet">
+    <ui-application appid="com.example.example_tizen_tv" exec="Runner.dll" multiple="false" nodisplay="false" taskmanage="true" type="dotnet">
         <label>example_tizen_tv</label>
         <icon>example_tizen_tv.png</icon>
-        <metadata key="http://tizen.org/metadata/prefer_dotnet_runtime" value="6.0"/>
+        <metadata key="http://tizen.org/metadata/prefer_dotnet_aot" value="true"/>
+
     </ui-application>
     <shortcut-list/>
     <capabilities/>
