@@ -34,3 +34,4 @@ flutter:
       tizen:
         pluginClass: VrPlayerPlugin
         fileName: vr_player_plugin.h
+

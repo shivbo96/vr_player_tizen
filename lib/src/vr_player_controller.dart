@@ -106,7 +106,13 @@ class VrPlayerController {
     });
   }
 
-  Future<void> simulateDrag(double x1, double y1, double x2, double y2, int duration) async {
+  Future<void> simulateDrag(
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+    int duration,
+  ) async {
     await _channel.invokeMethod('simulateDrag', <String, dynamic>{
       'x1': x1,
       'y1': y1,
