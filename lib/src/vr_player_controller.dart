@@ -64,6 +64,11 @@ class VrPlayerController {
     return _channel.invokeMethod('toggleVRMode');
   }
 
+  /// Enable/disable VR mode
+  Future<void> setVRMode(bool enabled) {
+    return _channel.invokeMethod('setVRMode', {'enabled': enabled});
+  }
+
   /// (Only for Android)
   /// Reload player when you need to change size of nativeView
   Future<void> onSizeChanged(double width, double height) {
