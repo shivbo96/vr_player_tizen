@@ -8,7 +8,9 @@
 
     </ui-application>
     <shortcut-list/>
-    <capabilities/>
+    <capabilities>
+        <feature name="http://tizen.org/feature/multimedia.player.spherical_video">true</feature>
+    </capabilities>
     <privileges>
         <privilege>http://tizen.org/privilege/internet</privilege>
         <privilege>http://tizen.org/privilege/mediastorage</privilege>

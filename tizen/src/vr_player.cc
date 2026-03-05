@@ -67,6 +67,8 @@ void VrPlayer::InitializePlayer() {
   int ret_360 = player_360_set_enabled(player_, true);
   if (ret_360 != PLAYER_ERROR_NONE) {
     LOG_ERROR("player_360_set_enabled failed: %d", ret_360);
+  } else {
+    LOG_INFO("player_360_set_enabled(true) successful");
   }
 }
 
@@ -379,6 +381,19 @@ void VrPlayer::OnPrepared(void *data) {
   player_get_duration(player->player_, &duration);
   player->PushEvent(
       std::make_pair("duration", flutter::EncodableValue(duration)));
+
+  bool is_spherical = false;
+  int ret_spherical =
+      player_360_is_content_spherical(player->player_, &is_spherical);
+  if (ret_spherical == PLAYER_ERROR_NONE) {
+    LOG_INFO("Content is spherical: %s", is_spherical ? "true" : "false");
+  } else {
+    LOG_ERROR("player_360_is_content_spherical failed: %d", ret_spherical);
+  }
+
+  bool is_enabled = false;
+  player_360_is_enabled(player->player_, &is_enabled);
+  LOG_INFO("360 mode enabled: %s", is_enabled ? "true" : "false");
 
   // Ensure 360 mode is enabled on prepared.
   player->SetVRMode(true);
