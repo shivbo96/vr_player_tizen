@@ -375,6 +375,8 @@ void VrPlayer::OnPrepared(void *data) {
   player->PushEvent(
       std::make_pair("state", flutter::EncodableValue(1))); // VrState.ready
 
+  int duration = 0;
+  player_get_duration(player->player_, &duration);
   player->PushEvent(
       std::make_pair("duration", flutter::EncodableValue(duration)));
 
