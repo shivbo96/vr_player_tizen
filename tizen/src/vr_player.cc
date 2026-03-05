@@ -1,5 +1,9 @@
 #include "vr_player.h"
 
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
+#include <cmath>
 #include <dlog.h>
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/standard_method_codec.h>
@@ -151,9 +155,7 @@ void VrPlayer::SetVRMode(bool enabled) {
   }
 }
 
-void VrPlayer::ToggleVRMode() {
-  SetVRMode(!is_360_enabled_);
-}
+void VrPlayer::ToggleVRMode() { SetVRMode(!is_360_enabled_); }
 
 void VrPlayer::StartContinuousDrag(double dx, double dy) {
   drag_dx_ = dx;
@@ -400,15 +402,20 @@ Eina_Bool VrPlayer::OnPositionTimer(void *data) {
 
 Eina_Bool VrPlayer::OnDragTimer(void *data) {
   auto *player = static_cast<VrPlayer *>(data);
-  
+
   if (player->player_ && player->is_360_enabled_) {
     player->yaw_ += player->drag_dx_ * -0.5f;
     player->pitch_ += player->drag_dy_ * -0.5f;
-    
-    if (player->pitch_ > 90.0f) player->pitch_ = 90.0f;
-    if (player->pitch_ < -90.0f) player->pitch_ = -90.0f;
 
-    player_360_set_direction(player->player_, player->yaw_, player->pitch_);
+    if (player->pitch_ > 90.0f)
+      player->pitch_ = 90.0f;
+    if (player->pitch_ < -90.0f)
+      player->pitch_ = -90.0f;
+
+    float yaw_radians = player->yaw_ * M_PI / 180.0f;
+    float pitch_radians = player->pitch_ * M_PI / 180.0f;
+    player_360_set_direction_of_view(player->player_, yaw_radians,
+                                     pitch_radians);
   }
   return ECORE_CALLBACK_RENEW;
 }
