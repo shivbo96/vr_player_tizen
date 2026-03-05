@@ -13,7 +13,7 @@
 #define LOG_ERROR(fmt, ...)                                                    \
   dlog_print(DLOG_ERROR, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
 #define LOG_INFO(fmt, ...)                                                     \
-  dlog_print(DLOG_INFO, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
+  dlog_print(DLOG_DEBUG, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
 
 namespace vr_player_tizen {
 
