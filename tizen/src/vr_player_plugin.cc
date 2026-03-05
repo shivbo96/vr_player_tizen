@@ -146,6 +146,28 @@ private:
       result->Success();
     } else if (method == "isPlaying") {
       result->Success(flutter::EncodableValue(player->IsPlaying()));
+    } else if (method == "startContinuousDrag") {
+      const auto *args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args) {
+        double dx = 0.0;
+        double dy = 0.0;
+        auto dx_it = args->find(flutter::EncodableValue("dx"));
+        if (dx_it != args->end() && std::holds_alternative<double>(dx_it->second)) {
+          dx = std::get<double>(dx_it->second);
+        }
+        auto dy_it = args->find(flutter::EncodableValue("dy"));
+        if (dy_it != args->end() && std::holds_alternative<double>(dy_it->second)) {
+          dy = std::get<double>(dy_it->second);
+        }
+        player->StartContinuousDrag(dx, dy);
+      }
+      result->Success();
+    } else if (method == "stopContinuousDrag") {
+      player->StopContinuousDrag();
+      result->Success();
+    } else if (method == "toggleVRMode") {
+      player->ToggleVRMode();
+      result->Success();
     } else {
       result->Success(); // stub out unsupported methods
     }

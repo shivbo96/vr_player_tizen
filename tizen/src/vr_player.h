@@ -9,6 +9,8 @@
 #include <flutter/texture_registrar.h>
 #include <player.h>
 
+#define VR_PLAYER_HAS_360 1
+
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -32,6 +34,11 @@ public:
   int32_t GetPosition();
   void Dispose();
 
+  void SetVRMode(bool enabled);
+  void ToggleVRMode();
+  void StartContinuousDrag(double dx, double dy);
+  void StopContinuousDrag();
+
   int64_t GetTextureId() { return texture_id_; }
 
 private:
@@ -48,6 +55,7 @@ private:
   static Eina_Bool OnPositionTimer(void *data);
   static void OnVideoFrameDecoded(media_packet_h packet, void *data);
   static void ReleaseMediaPacket(void *packet);
+  static Eina_Bool OnDragTimer(void *data);
 
   void RequestRendering();
   void OnRenderingCompleted();
@@ -89,6 +97,13 @@ private:
   std::queue<std::pair<std::string, flutter::EncodableValue>>
       encodable_event_queue_;
   Ecore_Timer *position_timer_ = nullptr;
+
+  bool is_360_enabled_ = false;
+  float yaw_ = 0.0f;
+  float pitch_ = 0.0f;
+  float drag_dx_ = 0.0f;
+  float drag_dy_ = 0.0f;
+  Ecore_Timer *drag_timer_ = nullptr;
 };
 
 } // namespace vr_player_tizen

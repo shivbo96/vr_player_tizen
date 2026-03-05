@@ -112,7 +112,18 @@ class _VideoPlayerState extends State<VrPlayer> with WidgetsBindingObserver {
         width: widget.width,
         height: widget.height,
         child: _textureId != null
-            ? Texture(textureId: _textureId!)
+            ? GestureDetector(
+                onPanUpdate: (details) {
+                  _videoPlayerController.startContinuousDrag(
+                    details.delta.dx,
+                    details.delta.dy,
+                  );
+                },
+                onPanEnd: (details) {
+                  _videoPlayerController.stopContinuousDrag();
+                },
+                child: Texture(textureId: _textureId!),
+              )
             : const SizedBox.shrink(),
       );
     }

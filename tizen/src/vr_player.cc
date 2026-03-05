@@ -144,6 +144,34 @@ bool VrPlayer::IsPlaying() {
   return state == PLAYER_STATE_PLAYING;
 }
 
+void VrPlayer::SetVRMode(bool enabled) {
+  is_360_enabled_ = enabled;
+  if (player_) {
+    player_360_set_enabled(player_, enabled);
+  }
+}
+
+void VrPlayer::ToggleVRMode() {
+  SetVRMode(!is_360_enabled_);
+}
+
+void VrPlayer::StartContinuousDrag(double dx, double dy) {
+  drag_dx_ = dx;
+  drag_dy_ = dy;
+  if (!drag_timer_) {
+    drag_timer_ = ecore_timer_add(0.016, OnDragTimer, this);
+  }
+}
+
+void VrPlayer::StopContinuousDrag() {
+  drag_dx_ = 0.0f;
+  drag_dy_ = 0.0f;
+  if (drag_timer_) {
+    ecore_timer_del(drag_timer_);
+    drag_timer_ = nullptr;
+  }
+}
+
 int32_t VrPlayer::GetPosition() {
   if (!player_)
     return 0;
@@ -156,6 +184,10 @@ void VrPlayer::Dispose() {
   if (position_timer_) {
     ecore_timer_del(position_timer_);
     position_timer_ = nullptr;
+  }
+  if (drag_timer_) {
+    ecore_timer_del(drag_timer_);
+    drag_timer_ = nullptr;
   }
   if (player_) {
     player_stop(player_);
@@ -340,6 +372,8 @@ void VrPlayer::OnPrepared(void *data) {
   player->PushEvent(
       std::make_pair("duration", flutter::EncodableValue(duration)));
 
+  player->SetVRMode(true);
+
   if (player->play_on_prepared_) {
     player->play_on_prepared_ = false;
     player->Play();
@@ -361,6 +395,21 @@ Eina_Bool VrPlayer::OnPositionTimer(void *data) {
   player_get_play_position(player->player_, &position);
   player->PushEvent(
       std::make_pair("position", flutter::EncodableValue(position)));
+  return ECORE_CALLBACK_RENEW;
+}
+
+Eina_Bool VrPlayer::OnDragTimer(void *data) {
+  auto *player = static_cast<VrPlayer *>(data);
+  
+  if (player->player_ && player->is_360_enabled_) {
+    player->yaw_ += player->drag_dx_ * -0.5f;
+    player->pitch_ += player->drag_dy_ * -0.5f;
+    
+    if (player->pitch_ > 90.0f) player->pitch_ = 90.0f;
+    if (player->pitch_ < -90.0f) player->pitch_ = -90.0f;
+
+    player_360_set_direction(player->player_, player->yaw_, player->pitch_);
+  }
   return ECORE_CALLBACK_RENEW;
 }
 
