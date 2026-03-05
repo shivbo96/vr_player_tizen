@@ -1,7 +1,12 @@
 #ifndef FLUTTER_PLUGIN_VR_PLAYER_VIEW_H_
 #define FLUTTER_PLUGIN_VR_PLAYER_VIEW_H_
 
+#if __has_include(<flutter/platform_view.h>)
 #include <flutter/platform_view.h>
+#define VR_PLAYER_HAS_PLATFORM_VIEW 1
+#else
+#define VR_PLAYER_HAS_PLATFORM_VIEW 0
+#endif
 #include <flutter/plugin_registrar.h>
 #include <memory>
 #include <string>
@@ -12,19 +17,13 @@ namespace vr_player_tizen {
 
 class VrPlayerView : public flutter::PlatformView {
 public:
-  VrPlayerView(flutter::PluginRegistrar *registrar, int64_t view_id,
+  VrPlayerView(flutter::PluginRegistrar *registrar, int64_t /*view_id*/,
                VrPlayer *player)
-      : registrar_(registrar), view_id_(view_id), player_(player) {}
+      : registrar_(registrar), player_(player) {}
 
   virtual ~VrPlayerView() {}
 
-  virtual void *GetNativeView() override {
-    // Return an Evas_Object or similar native view handle.
-    // For Tizen PlatformViews, we often use an image object or a sub-window.
-    // However, the Player API can take a window handle directly if we use
-    // OVERLAY.
-    return registrar_->GetView();
-  }
+  virtual void *GetNativeView() override { return nullptr; }
 
   void SetPlayerDisplay() {
     if (player_) {
@@ -34,7 +33,6 @@ public:
 
 private:
   flutter::PluginRegistrar *registrar_;
-  int64_t view_id_;
   VrPlayer *player_;
 };
 

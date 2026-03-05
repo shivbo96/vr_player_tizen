@@ -148,10 +148,12 @@ void VrPlayer::Dispose() {
     player_destroy(player_);
     player_ = nullptr;
   }
+#if VR_PLAYER_HAS_360
   if (drag_timer_) {
     ecore_timer_del(drag_timer_);
     drag_timer_ = nullptr;
   }
+#endif
 }
 
 void VrPlayer::SetUpEventChannel(flutter::BinaryMessenger *messenger) {
@@ -304,11 +306,6 @@ void VrPlayer::OnPrepared(void *data) {
   player->PushEvent(
       std::make_pair("duration", flutter::EncodableValue(duration)));
 
-  if (player->play_on_prepared_) {
-    player->play_on_prepared_ = false;
-    player->Play();
-  }
-
 #if VR_PLAYER_HAS_360
   bool is_spherical = false;
   if (player_360_is_content_spherical(player->player_, &is_spherical) ==
@@ -318,6 +315,11 @@ void VrPlayer::OnPrepared(void *data) {
     player->SetVRMode(true);
   }
 #endif
+
+  if (player->play_on_prepared_) {
+    player->play_on_prepared_ = false;
+    player->Play();
+  }
 }
 
 void VrPlayer::OnCompleted(void *data) {
@@ -338,8 +340,6 @@ Eina_Bool VrPlayer::OnPositionTimer(void *data) {
   return ECORE_CALLBACK_RENEW;
 }
 
-void VrPlayer::OnRenderingCompleted() {}
-
 void VrPlayer::SetVRMode(bool enabled) {
 #if VR_PLAYER_HAS_360
   if (!player_)
@@ -357,19 +357,23 @@ void VrPlayer::SetVRMode(bool enabled) {
 }
 
 void VrPlayer::StartContinuousDrag(double dx, double dy) {
+#if VR_PLAYER_HAS_360
   drag_dx_ = static_cast<float>(dx);
   drag_dy_ = static_cast<float>(dy);
 
   if (!drag_timer_) {
     drag_timer_ = ecore_timer_add(0.016, OnDragTimer, this); // ~60fps
   }
+#endif
 }
 
 void VrPlayer::StopContinuousDrag() {
+#if VR_PLAYER_HAS_360
   if (drag_timer_) {
     ecore_timer_del(drag_timer_);
     drag_timer_ = nullptr;
   }
+#endif
 }
 
 Eina_Bool VrPlayer::OnDragTimer(void *data) {

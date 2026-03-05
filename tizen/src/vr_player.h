@@ -89,6 +89,7 @@ private:
       encodable_event_queue_;
   Ecore_Timer *position_timer_ = nullptr;
 
+#if VR_PLAYER_HAS_360
   bool is_360_enabled_ = false;
   float yaw_ = 0.0f;
   float pitch_ = 0.0f;
@@ -96,6 +97,9 @@ private:
   float drag_dx_ = 0.0f;
   float drag_dy_ = 0.0f;
   Ecore_Timer *drag_timer_ = nullptr;
+#else
+  bool is_360_enabled_ = false;
+#endif
 };
 
 } // namespace vr_player_tizen

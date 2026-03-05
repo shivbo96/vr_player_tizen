@@ -1,8 +1,14 @@
 #include "vr_player_plugin.h"
 
+#include <dlog.h>
+
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar.h>
 #include <flutter/standard_method_codec.h>
+
+#if __has_include(<flutter_tizen.h>)
+#include <flutter_tizen.h>
+#endif
 
 #include <map>
 #include <memory>
@@ -11,19 +17,33 @@
 #include "vr_player.h"
 #include "vr_player_view.h"
 
+#define LOG_ERROR(fmt, ...)                                                    \
+  dlog_print(DLOG_ERROR, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...)                                                     \
+  dlog_print(DLOG_INFO, "VRPlayerPlugin", fmt, ##__VA_ARGS__)
+
 namespace {
 
 class VrPlayerPlugin : public flutter::Plugin {
 public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrar *registrar) {
+  static void
+  RegisterWithRegistrar(flutter::PluginRegistrar *registrar,
+                        FlutterDesktopPluginRegistrarRef core_registrar) {
     auto plugin = std::make_unique<VrPlayerPlugin>(registrar);
 
+#if VR_PLAYER_HAS_PLATFORM_VIEW
     auto factory = std::make_unique<vr_player_tizen::VrPlayerViewFactory>(
         registrar, [plugin_ptr = plugin.get()](int64_t view_id) {
           return plugin_ptr->GetPlayer(view_id);
         });
-    registrar->register_view_factory("plugins.vr_player/player_view",
-                                     std::move(factory));
+    FlutterDesktopRegisterViewFactory(
+        core_registrar, "plugins.vr_player/player_view", std::move(factory));
+#else
+    // Log a warning if PlatformView support is missing at compile-time.
+    // This happens if flutter/platform_view.h is not found.
+    LOG_ERROR(
+        "VR Player: PlatformView support is missing in this build profile.");
+#endif
 
     auto channel =
         std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
@@ -215,5 +235,6 @@ void VrPlayerPluginRegisterWithRegistrar(
     FlutterDesktopPluginRegistrarRef registrar) {
   VrPlayerPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrar>(registrar));
+          ->GetRegistrar<flutter::PluginRegistrar>(registrar),
+      registrar);
 }
