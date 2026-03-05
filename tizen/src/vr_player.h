@@ -98,7 +98,7 @@ private:
       encodable_event_queue_;
   Ecore_Timer *position_timer_ = nullptr;
 
-  bool is_360_enabled_ = false;
+  bool is_360_enabled_ = true;
   float yaw_ = 0.0f;
   float pitch_ = 0.0f;
   float drag_dx_ = 0.0f;

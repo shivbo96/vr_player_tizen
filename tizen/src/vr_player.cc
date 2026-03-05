@@ -62,6 +62,12 @@ void VrPlayer::InitializePlayer() {
 
   player_set_display_mode(player_, PLAYER_DISPLAY_MODE_DST_ROI);
   player_set_display_visible(player_, true);
+
+  // Enable 360 mode by default.
+  int ret_360 = player_360_set_enabled(player_, true);
+  if (ret_360 != PLAYER_ERROR_NONE) {
+    LOG_ERROR("player_360_set_enabled failed: %d", ret_360);
+  }
 }
 
 void VrPlayer::LoadVideo(const std::string &uri) {
@@ -369,11 +375,10 @@ void VrPlayer::OnPrepared(void *data) {
   player->PushEvent(
       std::make_pair("state", flutter::EncodableValue(1))); // VrState.ready
 
-  int duration = 0;
-  player_get_duration(player->player_, &duration);
   player->PushEvent(
       std::make_pair("duration", flutter::EncodableValue(duration)));
 
+  // Ensure 360 mode is enabled on prepared.
   player->SetVRMode(true);
 
   if (player->play_on_prepared_) {
